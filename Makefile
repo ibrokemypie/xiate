@@ -7,7 +7,7 @@ INSTALL = install
 INSTALL_PROGRAM = $(INSTALL)
 INSTALL_DATA = $(INSTALL) -m 644
 
-prefix = /usr/local
+prefix = /usr
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 datarootdir = $(prefix)/share
@@ -33,6 +33,8 @@ install: $(__NAME__) installdirs
 	$(INSTALL_PROGRAM) $(__NAME__)c $(DESTDIR)$(bindir)/$(__NAME__)c
 	$(INSTALL_DATA) man1/$(__NAME__).1 $(DESTDIR)$(man1dir)/$(__NAME__).1
 	$(INSTALL_DATA) man1/$(__NAME__)c.1 $(DESTDIR)$(man1dir)/$(__NAME__)c.1
+	@mkdir -p $(datarootdir)/terminfo
+	@tic -o $(datarootdir)/terminfo -sx xiate.info
 
 installdirs:
 	mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(man1dir)
