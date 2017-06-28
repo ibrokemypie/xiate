@@ -189,7 +189,7 @@ sig_bell(VteTerminal *term, gpointer data)
 gboolean
 sig_button_press(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
-    GtkClipboard *clip = NULL;
+    //GtkClipboard *clip = NULL;
     char *url = NULL;
 
     (void)data;
@@ -198,13 +198,17 @@ sig_button_press(GtkWidget *widget, GdkEvent *event, gpointer data)
     {
         if (((GdkEventButton *)event)->button == 3)
         {
-            clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+            //clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
             url = vte_terminal_match_check_event(VTE_TERMINAL(widget),
                                                  event, NULL);
             if (url != NULL)
             {
-                if (clip != NULL)
-                    gtk_clipboard_set_text(clip, url, -1);
+                //if (clip != NULL)
+                char command[400];
+                strcpy(command,"xdg-open ");
+                strcat(command,url);
+                system(command);
+                    //gtk_clipboard_set_text(clip, url, -1);
                 g_free(url);
             }
         }
