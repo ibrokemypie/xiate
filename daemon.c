@@ -33,7 +33,8 @@ struct term_options
 };
 
 
-static gboolean setup_term(GtkWidget *, GtkWidget *, struct term_options *);
+static void cb_spawn_async(VteTerminal *, GPid, GError *, gpointer);
+static void setup_term(GtkWidget *, GtkWidget *, struct term_options *);
 static void sig_bell(VteTerminal *, gpointer);
 static gboolean sig_button_press(GtkWidget *, GdkEvent *, gpointer);
 static void sig_child_exited(VteTerminal *, gint, gpointer);
@@ -51,7 +52,21 @@ static void term_set_font_scale(GtkWidget *, VteTerminal *, gdouble);
 static void term_set_size(GtkWidget *, VteTerminal *, glong, glong);
 
 
-gboolean
+void
+cb_spawn_async(VteTerminal *term, GPid pid, GError *err, gpointer data)
+{
+    GtkWidget *win = (GtkWidget *)data;
+
+    (void)term;
+
+    if (pid == -1 && err != NULL)
+    {
+        fprintf(stderr, __NAME__": Spawning child failed: %s\n", err->message);
+        gtk_widget_destroy(win);
+    }
+}
+
+void
 setup_term(GtkWidget *win, GtkWidget *term, struct term_options *to)
 {
     static char *args_default[] = { NULL, NULL, NULL };
@@ -97,6 +112,9 @@ setup_term(GtkWidget *win, GtkWidget *term, struct term_options *to)
                                                GTK_WINDOW(win));
     vte_terminal_set_mouse_autohide(VTE_TERMINAL(term), TRUE);
     vte_terminal_set_scrollback_lines(VTE_TERMINAL(term), scrollback_lines);
+
+    if (hyperlink_handler != NULL)
+        vte_terminal_set_allow_hyperlink(VTE_TERMINAL(term), TRUE);
 
     gdk_rgba_parse(&c_foreground_gdk, c_foreground);
     gdk_rgba_parse(&c_background_gdk, c_background);
@@ -165,9 +183,9 @@ setup_term(GtkWidget *win, GtkWidget *term, struct term_options *to)
                      G_CALLBACK(sig_window_title_changed), win);
 
     /* Spawn child. */
-    return vte_terminal_spawn_sync(VTE_TERMINAL(term), VTE_PTY_DEFAULT, to->cwd,
-                                   args_use, NULL, spawn_flags,
-                                   NULL, NULL, NULL, NULL, NULL);
+    vte_terminal_spawn_async(VTE_TERMINAL(term), VTE_PTY_DEFAULT, to->cwd,
+                             args_use, NULL, spawn_flags, NULL, NULL, NULL, 60,
+                             NULL, cb_spawn_async, win);
 }
 
 void
@@ -191,6 +209,7 @@ sig_button_press(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
     //GtkClipboard *clip = NULL;
     char *url = NULL;
+    char *argv[] = { hyperlink_handler, NULL, NULL };
 
     (void)data;
 
@@ -198,19 +217,38 @@ sig_button_press(GtkWidget *widget, GdkEvent *event, gpointer data)
     {
         if (((GdkEventButton *)event)->button == 3)
         {
+            /* Explicit hyperlinks take precedence over potential URL
+             * matches. */
+            if (hyperlink_handler != NULL)
+            {
+                url = vte_terminal_hyperlink_check_event(VTE_TERMINAL(widget), event);
+                if (url != NULL)
+                {
+                    //argv[1] = url;
+                    //g_spawn_async(NULL, argv, NULL, G_SPAWN_DEFAULT, NULL,
+                                  //NULL, NULL, NULL);
+                    char command[400];
+                    strcpy(command,"xdg-open ");
+                    strcat(command,url);
+                    system(command);
+                    g_free(url);
+                    return FALSE;
+                }
+            }
+
             //clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
             url = vte_terminal_match_check_event(VTE_TERMINAL(widget),
                                                  event, NULL);
-            if (url != NULL)
-            {
-                //if (clip != NULL)
-                char command[400];
-                strcpy(command,"xdg-open ");
-                strcat(command,url);
-                system(command);
-                    //gtk_clipboard_set_text(clip, url, -1);
-                g_free(url);
-            }
+           if (url != NULL)
+           {
+               //if (clip != NULL)
+               //gtk_clipboard_set_text(clip, url, -1);
+               char command[400];
+               strcpy(command,"xdg-open ");
+               strcat(command,url);
+               system(command);
+               g_free(url);
+           }
         }
     }
 
@@ -260,7 +298,7 @@ sig_key_press(GtkWidget *widget, GdkEvent *event, gpointer data)
         switch (((GdkEventKey *)event)->keyval)
         {
             case GDK_KEY_C:
-                vte_terminal_copy_clipboard(term);
+                vte_terminal_copy_clipboard_format(term, VTE_FORMAT_TEXT);
                 return TRUE;
             case GDK_KEY_V:
                 vte_terminal_paste_clipboard(term);
@@ -482,8 +520,7 @@ term_new(gpointer data)
 
     term = vte_terminal_new();
     gtk_container_add(GTK_CONTAINER(win), term);
-    if (!setup_term(win, term, to))
-        gtk_widget_destroy(win);
+    setup_term(win, term, to);
 
     if (to->argv)
         free(to->argv);
