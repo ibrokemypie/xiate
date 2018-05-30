@@ -1,5 +1,65 @@
 Release history for xiate
 
+v18.05  2018-05-20
+  [Changed]
+  - The client-server model has been removed. There's only one binary
+    called "xiate" now and it launches one terminal window. This change
+    has been done to be more resilient towards crashes (errors in xiate
+    itself or the libraries it uses).
+  - The Makefile now explicitly demands C99.
+
+v18.04  2018-04-30
+  [Added]
+  - When the mouse pointer hovers over an explicit hyperlink, xiate now
+    shows a tooltip window that displays the link's target.
+
+  [Changed]
+  - Geometry hints will no longer be set on our top-level windows. This
+    functionality has been removed from GTK+.
+
+v18.03  2018-03-17
+  [Changed]
+  - It is no longer possible to set handler paths in config.h to NULL.
+  - Handlers ("link_handler" and "history_handler") will now be searched
+    for in your $PATH.
+  - "hyperlink_handler" has been replaced by "link_handler". It will be
+    called for explicit hyperlinks as before, but also for plain text
+    links that have been detected by your regex.
+  - The hardcoded default of copying links to the X11 clipboard is gone.
+    If you want this functionality, you can use a tool like xclip in
+    your link handler.
+
+v18.01  2018-01-28
+  [Fixed]
+  - There was a race condition in the communication between server and
+    client. Depending on your machine (or its current load), the server
+    might not have read all data sent by the client. Example: When
+    running "xiatec -hold -e ls -al", the server might have dropped the
+    "-e ..." part, thus running only a shell.
+
+  [Changed]
+  - xiatec now keeps running until the associated terminal window has
+    been closed.
+  - This requires a change in the protocol spoken between server and
+    client. "H" now needs a NUL byte following it and the entire
+    sequence must be enclosed in "S\000 .. F\000".
+  - xiatec will now exit with 0 if the child program terminated
+    successfully and with 1 otherwise. This requires another change in
+    the protocol: The server will send exactly one byte to the client,
+    containing said exit code.
+  - Also, the client has been reimplemented in C, so the dependency on
+    Bash and socat is gone.
+  - Sockets now live in /tmp/xiate-$uid.
+
+  [Added]
+  - xiate (the daemon) now aborts if there is an unexpected number of
+    command line arguments. This prevents accidents like running "xiate
+    --suffix test" which would result in the server listening on the
+    "main" socket.
+  - Ctrl+F dumps the terminal history to a file and calls a tool you
+    specify in config.h. This allows you to search through history or
+    save parts of it.
+
 v17.10  2017-10-18
   [Changed]
   - We use vte_terminal_spawn_async() now, because the _sync() function

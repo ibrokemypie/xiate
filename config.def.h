@@ -10,6 +10,7 @@ gboolean enable_bold = TRUE;
 
 /* Default fonts and font sizes. These strings will be parsed by pango,
  * see the following URL:
+ *
  * https://developer.gnome.org/pango/stable/pango-Fonts.html#pango-font-description-from-string
  *
  * You can define up to 9 fonts, at least one font must be defined. You
@@ -27,22 +28,42 @@ char *fonts[] = {
  * infinite scrolling. Keep the memory footprint in mind, though. */
 guint scrollback_lines = 50000;
 
-/* This regular expression is used to match URLs. You can easily spot
+/* This regular expression is used to match links. You can easily spot
  * them by hovering over them with your mouse. Use your right mouse
- * button to copy the URL to your clipboard. */
-char *url_regex = "[a-z]+://[[:graph:]]+";
+ * button to invoke the link handler (defined below). */
+char *link_regex = "[a-z]+://[[:graph:]]+";
 
-/* Set this to the absolute path of a tool to handle explicit
- * hyperlinks. It will be passed the hyperlink's target in argv[1]. Use
- * your right mouse button to "launch" hyperlinks.
+/* Set this to the path of a tool to handle links. It will be invoked
+ * with the following arguments:
  *
- * If set to NULL, explicit hyperlinks will be disabled altogether.
+ *     argv[1] = "explicit" or "match"
+ *     argv[2] = The link in question
  *
- * Requires VTE 0.50 or newer.
+ * "explicit" will be used for explicit hyperlinks. They are explained
+ * over here:
  *
- * See the following Gist to learn more about hyperlinks:
- * https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda */
-char *hyperlink_handler = NULL;
+ * https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
+ *
+ * "match" will be used for links that have been found using
+ * "link_regex" as defined above.
+ *
+ * You don't need to specify an absolute path. The tool will be looked
+ * for in your $PATH. */
+char *link_handler = "xiate-link-handler";
+
+/* Set this to the path of a tool to handle history dumps.
+ *
+ * History dumps work like this: You press Ctrl+Shift+F to tell xiate to
+ * write the entire history of the terminal to a temporary file. Once
+ * that's done, your tool will be called with the path to that file as
+ * first argument.
+ *
+ * What you do with this file is entirely up to you. It's also your job
+ * to remove it once you're done with it.
+ *
+ * You don't need to specify an absolute path. The tool will be looked
+ * for in your $PATH. */
+char *history_handler = "xiate-history-handler";
 
 /* Background color of text under the cursor. There's a special mode:
  * "If NULL, text under the cursor will be drawn with foreground and

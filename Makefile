@@ -1,4 +1,4 @@
-CFLAGS += -Wall -Wextra -O3
+CFLAGS += -std=c99 -Wall -Wextra -O3
 __NAME__ = xiate
 __NAME_UPPERCASE__ = `echo $(__NAME__) | sed 's/.*/\U&/'`
 __NAME_CAPITALIZED__ = `echo $(__NAME__) | sed 's/^./\U&\E/'`
@@ -7,7 +7,7 @@ INSTALL = install
 INSTALL_PROGRAM = $(INSTALL)
 INSTALL_DATA = $(INSTALL) -m 644
 
-prefix = /usr
+prefix = /usr/local
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 datarootdir = $(prefix)/share
@@ -19,7 +19,7 @@ man1dir = $(mandir)/man1
 
 all: $(__NAME__)
 
-$(__NAME__): daemon.c config.h
+$(__NAME__): terminal.c config.h
 	$(CC) $(CFLAGS) $(LDFLAGS) \
 		-D__NAME__=\"$(__NAME__)\" \
 		-D__NAME_UPPERCASE__=\"$(__NAME_UPPERCASE__)\" \
@@ -30,11 +30,7 @@ $(__NAME__): daemon.c config.h
 
 install: $(__NAME__) installdirs
 	$(INSTALL_PROGRAM) $(__NAME__) $(DESTDIR)$(bindir)/$(__NAME__)
-	$(INSTALL_PROGRAM) $(__NAME__)c $(DESTDIR)$(bindir)/$(__NAME__)c
 	$(INSTALL_DATA) man1/$(__NAME__).1 $(DESTDIR)$(man1dir)/$(__NAME__).1
-	$(INSTALL_DATA) man1/$(__NAME__)c.1 $(DESTDIR)$(man1dir)/$(__NAME__)c.1
-	@mkdir -p $(datarootdir)/terminfo
-	@tic -o $(datarootdir)/terminfo -sx xiate.info
 
 installdirs:
 	mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(man1dir)
